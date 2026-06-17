@@ -1,0 +1,20 @@
+app = "setlist-spotify-api"
+primary_region = "ams"
+
+[build]
+
+[env]
+  SERVER_PORT = "8080"
+  SETLISTFM_BASE_URL = "https://api.setlist.fm/rest"
+  HTTP_TIMEOUT_SECONDS = "10"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "256mb"

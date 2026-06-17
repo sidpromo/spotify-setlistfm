@@ -1,0 +1,16 @@
+# Binaries
+/server
+
+# IDE
+.idea/
+.vscode/
+
+# OS
+.DS_Store
+
+# Env
+.env
+
+# Specs (not committed)
+agent-task-*.md
+PROJECT.md
