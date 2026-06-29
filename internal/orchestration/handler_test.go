@@ -7,9 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ebedber/setlist-spotify/internal/prediction"
-	"github.com/ebedber/setlist-spotify/internal/setlist"
-	"github.com/ebedber/setlist-spotify/internal/spotify"
+	"github.com/sidpromo/spotify-setlistfm/internal/prediction"
+	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
+	"github.com/sidpromo/spotify-setlistfm/internal/spotify"
 )
 
 func newTestService() *Service {

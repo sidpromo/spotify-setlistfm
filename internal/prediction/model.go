@@ -1,6 +1,6 @@
 package prediction
 
-import "github.com/ebedber/setlist-spotify/internal/setlist"
+import "github.com/sidpromo/spotify-setlistfm/internal/setlist"
 
 // PredictedSong is a song with its predicted position.
 type PredictedSong struct {

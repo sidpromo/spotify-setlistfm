@@ -11,13 +11,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/ebedber/setlist-spotify/internal/artist"
-	"github.com/ebedber/setlist-spotify/internal/config"
-	"github.com/ebedber/setlist-spotify/internal/middleware"
-	"github.com/ebedber/setlist-spotify/internal/orchestration"
-	"github.com/ebedber/setlist-spotify/internal/prediction"
-	"github.com/ebedber/setlist-spotify/internal/setlist"
-	"github.com/ebedber/setlist-spotify/internal/spotify"
+	"github.com/sidpromo/spotify-setlistfm/internal/artist"
+	"github.com/sidpromo/spotify-setlistfm/internal/config"
+	"github.com/sidpromo/spotify-setlistfm/internal/middleware"
+	"github.com/sidpromo/spotify-setlistfm/internal/orchestration"
+	"github.com/sidpromo/spotify-setlistfm/internal/prediction"
+	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
+	"github.com/sidpromo/spotify-setlistfm/internal/spotify"
 )
 
 func newMux() *http.ServeMux {

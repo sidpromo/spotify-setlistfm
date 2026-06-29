@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ebedber/setlist-spotify/internal/setlist"
+	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
 )
 
 func TestService_Predict_Success(t *testing.T) {

@@ -5,9 +5,9 @@ import (
 	"log/slog"
 	"time"
 
-	"github.com/ebedber/setlist-spotify/internal/prediction"
-	"github.com/ebedber/setlist-spotify/internal/setlist"
-	"github.com/ebedber/setlist-spotify/internal/spotify"
+	"github.com/sidpromo/spotify-setlistfm/internal/prediction"
+	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
+	"github.com/sidpromo/spotify-setlistfm/internal/spotify"
 )
 
 // SetlistService is the interface the orchestration needs from the setlist module.
