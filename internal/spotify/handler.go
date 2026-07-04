@@ -42,12 +42,13 @@ const sessionCookieName = "spotify_session"
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	sessionID := generateSessionID()
-	// TODO: Add Secure: true when serving over HTTPS in production, add SameSite: http.SameSiteLaxMode
+	// Cookie secured: HttpOnly (no JS access), Secure (HTTPS only), SameSite=Lax (CSRF protection)
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
+		Secure:   true,
 		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400,
 	})
