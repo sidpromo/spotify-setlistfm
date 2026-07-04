@@ -1,3 +1,3 @@
 module github.com/sidpromo/spotify-setlistfm
 
-go 1.23
+go 1.25
