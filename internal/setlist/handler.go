@@ -28,7 +28,7 @@ func (h *Handler) GetSetlists(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result) // #nosec G104
 }
 
 func handleError(w http.ResponseWriter, err error) {
@@ -50,5 +50,5 @@ func handleError(w http.ResponseWriter, err error) {
 func writeErr(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg}) // #nosec G104
 }

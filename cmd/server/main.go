@@ -28,7 +28,7 @@ func newMux() *http.ServeMux {
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"}) // #nosec G104
 }
 
 func main() {
@@ -75,8 +75,9 @@ func main() {
 	handler := middleware.CORS(cfg.CORSAllowedOrigin)(mux)
 
 	srv := &http.Server{
-		Addr:    ":" + cfg.ServerPort,
-		Handler: handler,
+		Addr:              ":" + cfg.ServerPort,
+		Handler:           handler,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	go func() {

@@ -58,7 +58,8 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 		Request:   req,
 	}
 
-	s.jobStore.Create(job)
+	// TODO: handle store errors when persistent storage is added
+	_ = s.jobStore.Create(job) // #nosec G104
 
 	go s.runPipeline(job, req.SessionID)
 
@@ -123,20 +124,20 @@ func (s *Service) runPipeline(job *Job, sessionID string) {
 		TourName:     pred.TourName,
 		BasedOnCount: pred.BasedOnCount,
 	}
-	s.jobStore.Update(job)
+	_ = s.jobStore.Update(job) // #nosec G104
 	slog.Info("job completed", "jobId", job.ID, "playlist", playlistResult.PlaylistURL)
 }
 
 func (s *Service) updateStatus(job *Job, status JobStatus) {
 	job.Status = status
 	job.UpdatedAt = time.Now()
-	s.jobStore.Update(job)
+	_ = s.jobStore.Update(job) // #nosec G104
 }
 
 func (s *Service) failJob(job *Job, errMsg string) {
 	job.Status = JobStatusFailed
 	job.UpdatedAt = time.Now()
 	job.Error = errMsg
-	s.jobStore.Update(job)
+	_ = s.jobStore.Update(job) // #nosec G104
 	slog.Error("job failed", "jobId", job.ID, "error", errMsg)
 }

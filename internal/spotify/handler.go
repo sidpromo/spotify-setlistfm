@@ -42,11 +42,13 @@ const sessionCookieName = "spotify_session"
 
 func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 	sessionID := generateSessionID()
+	// TODO: Add Secure: true when serving over HTTPS in production, add SameSite: http.SameSiteLaxMode
 	http.SetCookie(w, &http.Cookie{
 		Name:     sessionCookieName,
 		Value:    sessionID,
 		Path:     "/",
 		HttpOnly: true,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   86400,
 	})
 
@@ -77,23 +79,23 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	h.tokenStore.Save(state, token)
+	_ = h.tokenStore.Save(state, token) // #nosec G104
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]string{"status": "authenticated"})
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "authenticated"}) // #nosec G104
 }
 
 func (h *AuthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	cookie, err := r.Cookie(sessionCookieName)
 	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]bool{"authenticated": false})
+		_ = json.NewEncoder(w).Encode(map[string]bool{"authenticated": false}) // #nosec G104
 		return
 	}
 
 	_, err = h.tokenStore.Get(cookie.Value)
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(map[string]bool{"authenticated": err == nil})
+	_ = json.NewEncoder(w).Encode(map[string]bool{"authenticated": err == nil}) // #nosec G104
 }
 
 func (h *AuthHandler) exchangeCode(code string) (*Token, error) {

@@ -52,14 +52,14 @@ type sfmSetlist struct {
 func (c *SetlistFMClient) SearchArtists(ctx context.Context, name string, page int) (*ArtistSearchResult, error) {
 	u := fmt.Sprintf("%s/1.0/search/artists?artistName=%s&p=%d", c.baseURL, url.QueryEscape(name), page)
 
-	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u, nil) // #nosec G704 -- baseURL is from config, not user input
 	if err != nil {
 		return nil, err
 	}
 	req.Header.Set("x-api-key", c.apiKey)
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := c.httpClient.Do(req)
+	resp, err := c.httpClient.Do(req) // #nosec G704
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, ErrTimeout

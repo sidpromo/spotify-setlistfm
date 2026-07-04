@@ -45,7 +45,7 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(result)
+	_ = json.NewEncoder(w).Encode(result) // #nosec G104
 }
 
 func handleServiceError(w http.ResponseWriter, err error) {
@@ -62,8 +62,9 @@ func handleServiceError(w http.ResponseWriter, err error) {
 	}
 }
 
+// TODO: handle encode errors (low priority — if response write fails, connection is dead)
 func writeError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg}) // #nosec G104
 }

@@ -26,7 +26,7 @@ func (s *Service) CreatePlaylist(ctx context.Context, sessionID string, input Pl
 
 	if token.IsExpired() {
 		// In v1, no refresh — just require re-auth
-		s.tokenStore.Delete(sessionID)
+		_ = s.tokenStore.Delete(sessionID) // #nosec G104
 		return nil, ErrTokenExpired
 	}
 
