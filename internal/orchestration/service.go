@@ -30,16 +30,16 @@ type Service struct {
 	setlistSvc    SetlistService
 	predictionSvc PredictionService
 	spotifySvc    SpotifyService
-	jobStore      *JobStore
+	jobRepo       JobRepository
 }
 
 // NewService creates a new orchestration service.
-func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, js *JobStore) *Service {
+func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr JobRepository) *Service {
 	return &Service{
 		setlistSvc:    ss,
 		predictionSvc: ps,
 		spotifySvc:    sp,
-		jobStore:      js,
+		jobRepo:       jr,
 	}
 }
 
@@ -58,8 +58,7 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 		Request:   req,
 	}
 
-	// TODO: handle store errors when persistent storage is added
-	_ = s.jobStore.Create(job) // #nosec G104
+	_ = s.jobRepo.Create(context.Background(), job) // #nosec G104
 
 	go s.runPipeline(job, req.SessionID)
 
@@ -68,7 +67,7 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 
 // GetJob retrieves a job by ID.
 func (s *Service) GetJob(id string) (*Job, error) {
-	return s.jobStore.Get(id)
+	return s.jobRepo.Get(context.Background(), id)
 }
 
 func (s *Service) runPipeline(job *Job, sessionID string) {
@@ -124,20 +123,20 @@ func (s *Service) runPipeline(job *Job, sessionID string) {
 		TourName:     pred.TourName,
 		BasedOnCount: pred.BasedOnCount,
 	}
-	_ = s.jobStore.Update(job) // #nosec G104
+	_ = s.jobRepo.Update(context.Background(), job) // #nosec G104
 	slog.Info("job completed", "jobId", job.ID, "playlist", playlistResult.PlaylistURL)
 }
 
 func (s *Service) updateStatus(job *Job, status JobStatus) {
 	job.Status = status
 	job.UpdatedAt = time.Now()
-	_ = s.jobStore.Update(job) // #nosec G104
+	_ = s.jobRepo.Update(context.Background(), job) // #nosec G104
 }
 
 func (s *Service) failJob(job *Job, errMsg string) {
 	job.Status = JobStatusFailed
 	job.UpdatedAt = time.Now()
 	job.Error = errMsg
-	_ = s.jobStore.Update(job) // #nosec G104
+	_ = s.jobRepo.Update(context.Background(), job) // #nosec G104
 	slog.Error("job failed", "jobId", job.ID, "error", errMsg)
 }

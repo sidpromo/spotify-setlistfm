@@ -1,19 +1,21 @@
 package orchestration
 
 import (
+	"context"
 	"testing"
 	"time"
 )
 
 func TestJobStore_CreateAndGet(t *testing.T) {
-	store := NewJobStore()
+	ctx := context.Background()
+	store := NewInMemoryJobStore()
 	job := &Job{ID: "j_test1", Status: JobStatusPending, CreatedAt: time.Now()}
 
-	if err := store.Create(job); err != nil {
+	if err := store.Create(ctx, job); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
-	got, err := store.Get("j_test1")
+	got, err := store.Get(ctx, "j_test1")
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -23,22 +25,23 @@ func TestJobStore_CreateAndGet(t *testing.T) {
 }
 
 func TestJobStore_GetNotFound(t *testing.T) {
-	store := NewJobStore()
-	_, err := store.Get("unknown")
+	store := NewInMemoryJobStore()
+	_, err := store.Get(context.Background(), "unknown")
 	if err != ErrJobNotFound {
 		t.Fatalf("expected ErrJobNotFound, got %v", err)
 	}
 }
 
 func TestJobStore_Update(t *testing.T) {
-	store := NewJobStore()
+	ctx := context.Background()
+	store := NewInMemoryJobStore()
 	job := &Job{ID: "j_test2", Status: JobStatusPending}
-	store.Create(job)
+	store.Create(ctx, job)
 
 	job.Status = JobStatusCompleted
-	store.Update(job)
+	store.Update(ctx, job)
 
-	got, _ := store.Get("j_test2")
+	got, _ := store.Get(ctx, "j_test2")
 	if got.Status != JobStatusCompleted {
 		t.Errorf("expected completed, got %s", got.Status)
 	}

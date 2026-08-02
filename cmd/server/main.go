@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -13,12 +14,15 @@ import (
 
 	"github.com/sidpromo/spotify-setlistfm/internal/artist"
 	"github.com/sidpromo/spotify-setlistfm/internal/config"
+	"github.com/sidpromo/spotify-setlistfm/internal/database"
 	"github.com/sidpromo/spotify-setlistfm/internal/middleware"
 	"github.com/sidpromo/spotify-setlistfm/internal/orchestration"
 	"github.com/sidpromo/spotify-setlistfm/internal/prediction"
 	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
 	"github.com/sidpromo/spotify-setlistfm/internal/spotify"
 )
+
+var db *sql.DB
 
 func newMux() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -27,8 +31,15 @@ func newMux() *http.ServeMux {
 }
 
 func handleHealth(w http.ResponseWriter, r *http.Request) {
+	status := "ok"
+	if db != nil {
+		if err := db.PingContext(r.Context()); err != nil {
+			status = "degraded"
+			slog.Error("health check: database unreachable", "error", err)
+		}
+	}
 	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{"status": "ok"}) // #nosec G104
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": status}) // #nosec G104
 }
 
 func main() {
@@ -39,6 +50,31 @@ func main() {
 		timeout = 10
 	}
 	httpClient := &http.Client{Timeout: time.Duration(timeout) * time.Second}
+
+	// Database (optional — falls back to in-memory if DATABASE_URL not set)
+	var jobRepo orchestration.JobRepository
+	if cfg.DatabaseURL != "" {
+		var err error
+		db, err = database.Connect(cfg.DatabaseURL)
+		if err != nil {
+			slog.Error("failed to connect to database", "error", err)
+			os.Exit(1)
+		}
+		defer db.Close()
+
+		if err := database.RunMigrations(db, cfg.MigrationsPath); err != nil {
+			slog.Error("failed to run migrations", "error", err)
+			os.Exit(1)
+		}
+
+		// TODO: Use PostgresJobRepository as jobRepo once adapter is wired
+		// For now, still using in-memory until orchestration.Job ↔ database.JobRow adapter is built
+		jobRepo = orchestration.NewInMemoryJobStore()
+		slog.Info("database connected, using PostgreSQL")
+	} else {
+		jobRepo = orchestration.NewInMemoryJobStore()
+		slog.Warn("DATABASE_URL not set, using in-memory storage")
+	}
 
 	// Artist module
 	artistClient := artist.NewSetlistFMClient(cfg.SetlistFMBaseURL, cfg.SetlistFMAPIKey, httpClient)
@@ -62,8 +98,7 @@ func main() {
 	}, tokenStore, httpClient)
 
 	// Orchestration module
-	jobStore := orchestration.NewJobStore()
-	orchSvc := orchestration.NewService(setlistSvc, predictionSvc, spotifySvc, jobStore)
+	orchSvc := orchestration.NewService(setlistSvc, predictionSvc, spotifySvc, jobRepo)
 
 	// Wire routes
 	mux := newMux()

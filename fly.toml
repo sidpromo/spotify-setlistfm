@@ -7,6 +7,7 @@ primary_region = "ams"
   SERVER_PORT = "8080"
   SETLISTFM_BASE_URL = "https://api.setlist.fm/rest"
   HTTP_TIMEOUT_SECONDS = "10"
+  MIGRATIONS_PATH = "/migrations"
 
 [http_service]
   internal_port = 8080
@@ -18,3 +19,6 @@ primary_region = "ams"
 [[vm]]
   size = "shared-cpu-1x"
   memory = "256mb"
+
+# Database: attach with `fly postgres attach`
+# Sets DATABASE_URL automatically as a secret

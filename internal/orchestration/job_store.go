@@ -1,24 +1,25 @@
 package orchestration
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"sync"
 )
 
-// JobStore is an in-memory job store.
-type JobStore struct {
+// InMemoryJobStore is an in-memory implementation of JobRepository.
+type InMemoryJobStore struct {
 	mu   sync.RWMutex
 	jobs map[string]*Job
 }
 
-// NewJobStore creates a new in-memory job store.
-func NewJobStore() *JobStore {
-	return &JobStore{jobs: make(map[string]*Job)}
+// NewInMemoryJobStore creates a new in-memory job store.
+func NewInMemoryJobStore() *InMemoryJobStore {
+	return &InMemoryJobStore{jobs: make(map[string]*Job)}
 }
 
 // Create stores a new job.
-func (s *JobStore) Create(job *Job) error {
+func (s *InMemoryJobStore) Create(_ context.Context, job *Job) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.jobs[job.ID] = job
@@ -26,7 +27,7 @@ func (s *JobStore) Create(job *Job) error {
 }
 
 // Get retrieves a job by ID.
-func (s *JobStore) Get(id string) (*Job, error) {
+func (s *InMemoryJobStore) Get(_ context.Context, id string) (*Job, error) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	job, ok := s.jobs[id]
@@ -37,11 +38,29 @@ func (s *JobStore) Get(id string) (*Job, error) {
 }
 
 // Update updates a job in the store.
-func (s *JobStore) Update(job *Job) error {
+func (s *InMemoryJobStore) Update(_ context.Context, job *Job) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.jobs[job.ID] = job
 	return nil
+}
+
+// ListByUser returns jobs for a user (in-memory ignores userID — returns all).
+func (s *InMemoryJobStore) ListByUser(_ context.Context, _ string, limit, offset int) ([]*Job, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	var all []*Job
+	for _, j := range s.jobs {
+		all = append(all, j)
+	}
+	if offset >= len(all) {
+		return nil, nil
+	}
+	end := offset + limit
+	if end > len(all) {
+		end = len(all)
+	}
+	return all[offset:end], nil
 }
 
 // GenerateJobID creates a random job ID.

@@ -51,7 +51,7 @@ func TestService_CreateJob_Success(t *testing.T) {
 		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "Band - Tour (Predicted Setlist)", TracksAdded: 2, TracksTotal: 2,
 	}}
 
-	svc := NewService(ss, ps, sp, NewJobStore())
+	svc := NewService(ss, ps, sp, NewInMemoryJobStore())
 	job, err := svc.CreateJob(JobRequest{ArtistMBID: "abc-def-123-456-789012345678", ArtistName: "Band", SessionID: "sess"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -74,7 +74,7 @@ func TestService_CreateJob_Success(t *testing.T) {
 
 func TestService_CreateJob_SetlistFails(t *testing.T) {
 	ss := &mockSetlistService{err: errors.New("no recent setlists")}
-	svc := NewService(ss, nil, nil, NewJobStore())
+	svc := NewService(ss, nil, nil, NewInMemoryJobStore())
 
 	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
 	time.Sleep(50 * time.Millisecond)
@@ -91,7 +91,7 @@ func TestService_CreateJob_SetlistFails(t *testing.T) {
 func TestService_CreateJob_PredictionFails(t *testing.T) {
 	ss := &mockSetlistService{result: &setlist.SetlistResult{Setlists: []setlist.Setlist{{Songs: []setlist.Song{{Name: "X"}}}}}}
 	ps := &mockPredictionService{err: errors.New("not enough data")}
-	svc := NewService(ss, ps, nil, NewJobStore())
+	svc := NewService(ss, ps, nil, NewInMemoryJobStore())
 
 	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
 	time.Sleep(50 * time.Millisecond)
@@ -106,7 +106,7 @@ func TestService_CreateJob_SpotifyFails(t *testing.T) {
 	ss := &mockSetlistService{result: &setlist.SetlistResult{Setlists: []setlist.Setlist{{Songs: []setlist.Song{{Name: "X"}}}}}}
 	ps := &mockPredictionService{result: &prediction.PredictedSetlist{Songs: []prediction.PredictedSong{{Name: "X"}}}}
 	sp := &mockSpotifyService{err: errors.New("spotify unavailable")}
-	svc := NewService(ss, ps, sp, NewJobStore())
+	svc := NewService(ss, ps, sp, NewInMemoryJobStore())
 
 	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
 	time.Sleep(50 * time.Millisecond)
@@ -118,7 +118,7 @@ func TestService_CreateJob_SpotifyFails(t *testing.T) {
 }
 
 func TestService_CreateJob_MissingFields(t *testing.T) {
-	svc := NewService(nil, nil, nil, NewJobStore())
+	svc := NewService(nil, nil, nil, NewInMemoryJobStore())
 	_, err := svc.CreateJob(JobRequest{})
 	if err != ErrMissingArtist {
 		t.Fatalf("expected ErrMissingArtist, got %v", err)

@@ -22,7 +22,7 @@ func newTestService() *Service {
 	sp := &mockSpotifyService{result: &spotify.PlaylistResult{
 		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "n", TracksAdded: 1, TracksTotal: 1,
 	}}
-	return NewService(ss, ps, sp, NewJobStore())
+	return NewService(ss, ps, sp, NewInMemoryJobStore())
 }
 
 func TestHandler_CreatePlaylist_Success(t *testing.T) {
