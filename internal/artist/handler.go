@@ -1,6 +1,7 @@
 package artist
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"log/slog"
@@ -8,19 +9,24 @@ import (
 	"strconv"
 )
 
+// Searcher defines the interface for artist search (used by handler).
+type Searcher interface {
+	Search(ctx context.Context, query string, page int) (*ArtistSearchResult, error)
+}
+
 // Handler handles artist HTTP endpoints.
 type Handler struct {
-	service *Service
+	searcher Searcher
 }
 
 // NewHandler creates a new artist handler.
-func NewHandler(service *Service) *Handler {
-	return &Handler{service: service}
+func NewHandler(searcher Searcher) *Handler {
+	return &Handler{searcher: searcher}
 }
 
 // RegisterHandlers registers artist routes on the mux.
-func RegisterHandlers(mux *http.ServeMux, service *Service) {
-	h := NewHandler(service)
+func RegisterHandlers(mux *http.ServeMux, searcher Searcher) {
+	h := NewHandler(searcher)
 	mux.HandleFunc("GET /v1/artists/search", h.Search)
 }
 
@@ -38,7 +44,7 @@ func (h *Handler) Search(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	result, err := h.service.Search(r.Context(), query, page)
+	result, err := h.searcher.Search(r.Context(), query, page)
 	if err != nil {
 		handleServiceError(w, err)
 		return
