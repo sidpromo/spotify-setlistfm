@@ -60,7 +60,7 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 
 	_ = s.jobRepo.Create(context.Background(), job) // #nosec G104
 
-	go s.runPipeline(job, req.SessionID)
+	go s.runPipeline(job, req.UserID)
 
 	return job, nil
 }
@@ -70,7 +70,7 @@ func (s *Service) GetJob(id string) (*Job, error) {
 	return s.jobRepo.Get(context.Background(), id)
 }
 
-func (s *Service) runPipeline(job *Job, sessionID string) {
+func (s *Service) runPipeline(job *Job, userID string) {
 	ctx := context.Background()
 
 	s.updateStatus(job, JobStatusProcessing)
@@ -100,7 +100,7 @@ func (s *Service) runPipeline(job *Job, sessionID string) {
 		songs[i] = song.Name
 	}
 
-	playlistResult, err := s.spotifySvc.CreatePlaylist(ctx, sessionID, spotify.PlaylistInput{
+	playlistResult, err := s.spotifySvc.CreatePlaylist(ctx, userID, spotify.PlaylistInput{
 		ArtistName: job.Request.ArtistName,
 		TourName:   pred.TourName,
 		Songs:      songs,

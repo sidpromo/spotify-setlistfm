@@ -1,12 +1,14 @@
 package orchestration
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/sidpromo/spotify-setlistfm/internal/auth"
 	"github.com/sidpromo/spotify-setlistfm/internal/prediction"
 	"github.com/sidpromo/spotify-setlistfm/internal/setlist"
 	"github.com/sidpromo/spotify-setlistfm/internal/spotify"
@@ -25,6 +27,11 @@ func newTestService() *Service {
 	return NewService(ss, ps, sp, NewInMemoryJobStore())
 }
 
+// injectUserID adds userID to context using the auth package's key.
+func injectUserID(ctx context.Context, userID string) context.Context {
+	return context.WithValue(ctx, auth.UserIDContextKey(), userID)
+}
+
 func TestHandler_CreatePlaylist_Success(t *testing.T) {
 	svc := newTestService()
 	mux := http.NewServeMux()
@@ -32,7 +39,7 @@ func TestHandler_CreatePlaylist_Success(t *testing.T) {
 
 	body := `{"artistMbid":"abc","artistName":"Band"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/playlists", strings.NewReader(body))
-	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "sess1"})
+	req = req.WithContext(injectUserID(req.Context(), "user-123"))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -48,7 +55,7 @@ func TestHandler_CreatePlaylist_MissingFields(t *testing.T) {
 
 	body := `{"artistMbid":"","artistName":""}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/playlists", strings.NewReader(body))
-	req.AddCookie(&http.Cookie{Name: sessionCookieName, Value: "sess1"})
+	req = req.WithContext(injectUserID(req.Context(), "user-123"))
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -57,13 +64,14 @@ func TestHandler_CreatePlaylist_MissingFields(t *testing.T) {
 	}
 }
 
-func TestHandler_CreatePlaylist_NoCookie(t *testing.T) {
+func TestHandler_CreatePlaylist_NoAuth(t *testing.T) {
 	svc := newTestService()
 	mux := http.NewServeMux()
 	RegisterHandlers(mux, svc)
 
 	body := `{"artistMbid":"abc","artistName":"Band"}`
 	req := httptest.NewRequest(http.MethodPost, "/v1/playlists", strings.NewReader(body))
+	// No userID in context — simulates missing JWT
 	w := httptest.NewRecorder()
 	mux.ServeHTTP(w, req)
 
@@ -78,7 +86,7 @@ func TestHandler_GetJob_Success(t *testing.T) {
 	RegisterHandlers(mux, svc)
 
 	// Create a job first
-	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
+	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-123"})
 
 	req := httptest.NewRequest(http.MethodGet, "/v1/playlists/jobs/"+job.ID, nil)
 	w := httptest.NewRecorder()

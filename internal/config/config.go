@@ -8,6 +8,7 @@ type Config struct {
 	DatabaseURL        string
 	RedisURL           string
 	MigrationsPath     string
+	JWTSecret          string
 	SetlistFMAPIKey    string
 	SetlistFMBaseURL   string
 	HTTPTimeoutSec     string
@@ -23,6 +24,7 @@ func Load() *Config {
 		DatabaseURL:        os.Getenv("DATABASE_URL"),
 		RedisURL:           getEnv("REDIS_URL", "redis://localhost:6379"),
 		MigrationsPath:     getEnv("MIGRATIONS_PATH", "migrations"),
+		JWTSecret:          getEnv("JWT_SECRET", "dev-secret-change-in-production"),
 		SetlistFMAPIKey:    os.Getenv("SETLISTFM_API_KEY"),
 		SetlistFMBaseURL:   getEnv("SETLISTFM_BASE_URL", "https://api.setlist.fm/rest"),
 		HTTPTimeoutSec:     getEnv("HTTP_TIMEOUT_SECONDS", "10"),

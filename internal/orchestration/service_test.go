@@ -52,7 +52,7 @@ func TestService_CreateJob_Success(t *testing.T) {
 	}}
 
 	svc := NewService(ss, ps, sp, NewInMemoryJobStore())
-	job, err := svc.CreateJob(JobRequest{ArtistMBID: "abc-def-123-456-789012345678", ArtistName: "Band", SessionID: "sess"})
+	job, err := svc.CreateJob(JobRequest{ArtistMBID: "abc-def-123-456-789012345678", ArtistName: "Band", UserID: "user-1"})
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestService_CreateJob_SetlistFails(t *testing.T) {
 	ss := &mockSetlistService{err: errors.New("no recent setlists")}
 	svc := NewService(ss, nil, nil, NewInMemoryJobStore())
 
-	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
+	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-1"})
 	time.Sleep(50 * time.Millisecond)
 
 	got, _ := svc.GetJob(job.ID)
@@ -93,7 +93,7 @@ func TestService_CreateJob_PredictionFails(t *testing.T) {
 	ps := &mockPredictionService{err: errors.New("not enough data")}
 	svc := NewService(ss, ps, nil, NewInMemoryJobStore())
 
-	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
+	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-1"})
 	time.Sleep(50 * time.Millisecond)
 
 	got, _ := svc.GetJob(job.ID)
@@ -108,7 +108,7 @@ func TestService_CreateJob_SpotifyFails(t *testing.T) {
 	sp := &mockSpotifyService{err: errors.New("spotify unavailable")}
 	svc := NewService(ss, ps, sp, NewInMemoryJobStore())
 
-	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", SessionID: "s"})
+	job, _ := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-1"})
 	time.Sleep(50 * time.Millisecond)
 
 	got, _ := svc.GetJob(job.ID)

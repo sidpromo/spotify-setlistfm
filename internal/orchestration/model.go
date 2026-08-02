@@ -27,7 +27,7 @@ type Job struct {
 type JobRequest struct {
 	ArtistMBID string `json:"artistMbid"`
 	ArtistName string `json:"artistName"`
-	SessionID  string `json:"-"`
+	UserID     string `json:"-"`
 }
 
 // JobResult holds the output of a completed job.

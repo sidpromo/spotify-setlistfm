@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"errors"
 	"net/http"
-)
 
-const sessionCookieName = "spotify_session"
+	"github.com/sidpromo/spotify-setlistfm/internal/auth"
+)
 
 // Handler handles orchestration HTTP endpoints.
 type Handler struct {
@@ -21,6 +21,12 @@ func RegisterHandlers(mux *http.ServeMux, service *Service) {
 }
 
 func (h *Handler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
+	userID := auth.UserIDFromContext(r.Context())
+	if userID == "" {
+		writeErr(w, http.StatusUnauthorized, "not authenticated")
+		return
+	}
+
 	var req struct {
 		ArtistMBID string `json:"artistMbid"`
 		ArtistName string `json:"artistName"`
@@ -30,24 +36,15 @@ func (h *Handler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Get session ID from cookie
-	cookie, err := r.Cookie(sessionCookieName)
-	if err != nil {
-		writeErr(w, http.StatusUnauthorized, "not authenticated with Spotify, visit /v1/auth/spotify/login")
-		return
-	}
-
 	job, err := h.service.CreateJob(JobRequest{
 		ArtistMBID: req.ArtistMBID,
 		ArtistName: req.ArtistName,
-		SessionID:  cookie.Value,
+		UserID:     userID,
 	})
 	if err != nil {
 		switch {
 		case errors.Is(err, ErrMissingArtist):
 			writeErr(w, http.StatusBadRequest, err.Error())
-		case errors.Is(err, ErrNotAuthenticated):
-			writeErr(w, http.StatusUnauthorized, "not authenticated with Spotify")
 		default:
 			writeErr(w, http.StatusInternalServerError, "failed to create job")
 		}
