@@ -24,7 +24,7 @@ func newTestService() *Service {
 	sp := &mockSpotifyService{result: &spotify.PlaylistResult{
 		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "n", TracksAdded: 1, TracksTotal: 1,
 	}}
-	return NewService(ss, ps, sp, NewInMemoryJobStore())
+	return NewService(ss, ps, sp, NewInMemoryJobStore(), nil)
 }
 
 // injectUserID adds userID to context using the auth package's key.

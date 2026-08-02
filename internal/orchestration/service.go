@@ -25,25 +25,58 @@ type SpotifyService interface {
 	CreatePlaylist(ctx context.Context, sessionID string, input spotify.PlaylistInput) (*spotify.PlaylistResult, error)
 }
 
+// JobEnqueuer pushes jobs to the queue for async processing.
+// Implementations: Redis Streams queue (production), direct goroutine (fallback).
+type JobEnqueuer interface {
+	Enqueue(ctx context.Context, jobID, userID, artistMBID, artistName string) error
+}
+
+// DirectEnqueuer runs the pipeline directly in a goroutine (fallback when no queue).
+type DirectEnqueuer struct {
+	runFunc func(jobID, userID string)
+}
+
+// NewDirectEnqueuer creates an enqueuer that runs jobs directly.
+func NewDirectEnqueuer(runFunc func(jobID, userID string)) *DirectEnqueuer {
+	return &DirectEnqueuer{runFunc: runFunc}
+}
+
+func (e *DirectEnqueuer) Enqueue(_ context.Context, jobID, userID, _, _ string) error {
+	go e.runFunc(jobID, userID)
+	return nil
+}
+
 // Service coordinates the full pipeline.
 type Service struct {
 	setlistSvc    SetlistService
 	predictionSvc PredictionService
 	spotifySvc    SpotifyService
 	jobRepo       JobRepository
+	enqueuer      JobEnqueuer
 }
 
 // NewService creates a new orchestration service.
-func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr JobRepository) *Service {
-	return &Service{
+func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr JobRepository, eq JobEnqueuer) *Service {
+	svc := &Service{
 		setlistSvc:    ss,
 		predictionSvc: ps,
 		spotifySvc:    sp,
 		jobRepo:       jr,
+		enqueuer:      eq,
 	}
+	// If no enqueuer provided, use direct goroutine fallback
+	if eq == nil {
+		svc.enqueuer = NewDirectEnqueuer(func(jobID, userID string) {
+			job, _ := jr.Get(context.Background(), jobID)
+			if job != nil {
+				svc.RunPipeline(context.Background(), job, userID)
+			}
+		})
+	}
+	return svc
 }
 
-// CreateJob validates input and starts an async pipeline.
+// CreateJob validates input, stores the job, and enqueues it for processing.
 func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 	if req.ArtistMBID == "" || req.ArtistName == "" {
 		return nil, ErrMissingArtist
@@ -60,7 +93,10 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 
 	_ = s.jobRepo.Create(context.Background(), job) // #nosec G104
 
-	go s.runPipeline(job, req.UserID)
+	if err := s.enqueuer.Enqueue(context.Background(), job.ID, req.UserID, req.ArtistMBID, req.ArtistName); err != nil {
+		s.failJob(job, "failed to enqueue: "+err.Error())
+		return job, nil // return job with failed status, don't error the HTTP response
+	}
 
 	return job, nil
 }
@@ -70,8 +106,9 @@ func (s *Service) GetJob(id string) (*Job, error) {
 	return s.jobRepo.Get(context.Background(), id)
 }
 
-func (s *Service) runPipeline(job *Job, userID string) {
-	ctx := context.Background()
+// RunPipeline executes the full playlist generation pipeline for a job.
+// Called by the worker pool (or directly in fallback mode).
+func (s *Service) RunPipeline(ctx context.Context, job *Job, userID string) {
 
 	s.updateStatus(job, JobStatusProcessing)
 
