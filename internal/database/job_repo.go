@@ -136,6 +136,37 @@ func (r *PostgresJobRepository) ListByUser(ctx context.Context, userID string, l
 	return jobs, rows.Err()
 }
 
+// FindActive finds an active (pending/processing) job for a user + artist.
+func (r *PostgresJobRepository) FindActive(ctx context.Context, userID, artistMBID string) (*JobRow, error) {
+	query := `
+		SELECT id, user_id, status, artist_mbid, artist_name, result, error, created_at, updated_at
+		FROM jobs
+		WHERE user_id = $1 AND artist_mbid = $2 AND status IN ('pending', 'processing')
+		ORDER BY created_at DESC
+		LIMIT 1`
+
+	row := r.db.QueryRowContext(ctx, query, userID, artistMBID)
+	job := &JobRow{}
+	err := row.Scan(
+		&job.ID,
+		&job.UserID,
+		&job.Status,
+		&job.ArtistMBID,
+		&job.ArtistName,
+		&job.Result,
+		&job.Error,
+		&job.CreatedAt,
+		&job.UpdatedAt,
+	)
+	if err == sql.ErrNoRows {
+		return nil, nil // no active job
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find active job: %w", err)
+	}
+	return job, nil
+}
+
 // MarshalResult converts a result struct to JSON for storage.
 func MarshalResult(v any) sql.NullString {
 	if v == nil {

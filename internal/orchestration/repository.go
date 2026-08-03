@@ -9,4 +9,5 @@ type JobRepository interface {
 	Get(ctx context.Context, id string) (*Job, error)
 	Update(ctx context.Context, job *Job) error
 	ListByUser(ctx context.Context, userID string, limit, offset int) ([]*Job, error)
+	FindActive(ctx context.Context, userID, artistMBID string) (*Job, error)
 }

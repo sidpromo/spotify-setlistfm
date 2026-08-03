@@ -77,9 +77,16 @@ func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr J
 }
 
 // CreateJob validates input, stores the job, and enqueues it for processing.
+// Idempotent: if an active job already exists for the same user + artist, returns it.
 func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 	if req.ArtistMBID == "" || req.ArtistName == "" {
 		return nil, ErrMissingArtist
+	}
+
+	// Idempotency: don't create duplicate jobs for same user + artist
+	existing, _ := s.jobRepo.FindActive(context.Background(), req.UserID, req.ArtistMBID)
+	if existing != nil {
+		return existing, nil // return existing active job
 	}
 
 	now := time.Now()

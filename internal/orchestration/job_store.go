@@ -63,6 +63,20 @@ func (s *InMemoryJobStore) ListByUser(_ context.Context, _ string, limit, offset
 	return all[offset:end], nil
 }
 
+// FindActive returns an active job (pending/processing) for a user + artist combo.
+// Returns nil if no active job exists.
+func (s *InMemoryJobStore) FindActive(_ context.Context, userID, artistMBID string) (*Job, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	for _, j := range s.jobs {
+		if j.Request.UserID == userID && j.Request.ArtistMBID == artistMBID &&
+			(j.Status == JobStatusPending || j.Status == JobStatusProcessing) {
+			return j, nil
+		}
+	}
+	return nil, nil
+}
+
 // GenerateJobID creates a random job ID.
 func GenerateJobID() string {
 	b := make([]byte, 8)

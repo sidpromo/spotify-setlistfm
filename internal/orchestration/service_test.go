@@ -124,3 +124,40 @@ func TestService_CreateJob_MissingFields(t *testing.T) {
 		t.Fatalf("expected ErrMissingArtist, got %v", err)
 	}
 }
+
+func TestService_CreateJob_Idempotent(t *testing.T) {
+	ss := &mockSetlistService{result: &setlist.SetlistResult{
+		Artist: "Band", Setlists: []setlist.Setlist{{Songs: []setlist.Song{{Name: "S1"}, {Name: "S2"}, {Name: "S3"}, {Name: "S4"}, {Name: "S5"}}, EventDate: time.Now()}},
+	}}
+	ps := &mockPredictionService{result: &prediction.PredictedSetlist{
+		Songs: []prediction.PredictedSong{{Name: "S1"}}, BasedOnCount: 1,
+	}}
+	sp := &mockSpotifyService{result: &spotify.PlaylistResult{
+		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "n", TracksAdded: 1, TracksTotal: 1,
+	}}
+	svc := NewService(ss, ps, sp, NewInMemoryJobStore(), nil)
+
+	// First call creates a job
+	job1, err := svc.CreateJob(JobRequest{ArtistMBID: "mbid-1", ArtistName: "Band", UserID: "user-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Second call with same user + artist returns the SAME job (not a new one)
+	job2, err := svc.CreateJob(JobRequest{ArtistMBID: "mbid-1", ArtistName: "Band", UserID: "user-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if job2.ID != job1.ID {
+		t.Errorf("expected same job ID %q, got %q (should be idempotent)", job1.ID, job2.ID)
+	}
+
+	// Different artist = different job
+	job3, err := svc.CreateJob(JobRequest{ArtistMBID: "mbid-2", ArtistName: "Other", UserID: "user-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if job3.ID == job1.ID {
+		t.Error("different artist should create a new job")
+	}
+}
