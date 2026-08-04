@@ -141,3 +141,8 @@ func ParseMessage(msg redis.XMessage) (*JobMessage, error) {
 	}
 	return &job, nil
 }
+
+// Len returns the current number of messages in the stream.
+func (q *Queue) Len(ctx context.Context) (int64, error) {
+	return q.client.XLen(ctx, StreamName).Result()
+}

@@ -31,6 +31,11 @@ type JobEnqueuer interface {
 	Enqueue(ctx context.Context, jobID, userID, artistMBID, artistName string) error
 }
 
+// QueueDepthChecker checks current queue length.
+type QueueDepthChecker interface {
+	Len(ctx context.Context) (int64, error)
+}
+
 // DirectEnqueuer runs the pipeline directly in a goroutine (fallback when no queue).
 type DirectEnqueuer struct {
 	runFunc func(jobID, userID string)
@@ -53,6 +58,8 @@ type Service struct {
 	spotifySvc    SpotifyService
 	jobRepo       JobRepository
 	enqueuer      JobEnqueuer
+	depthChecker  QueueDepthChecker
+	maxQueueDepth int64
 }
 
 // NewService creates a new orchestration service.
@@ -63,6 +70,7 @@ func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr J
 		spotifySvc:    sp,
 		jobRepo:       jr,
 		enqueuer:      eq,
+		maxQueueDepth: 100,
 	}
 	// If no enqueuer provided, use direct goroutine fallback
 	if eq == nil {
@@ -76,6 +84,12 @@ func NewService(ss SetlistService, ps PredictionService, sp SpotifyService, jr J
 	return svc
 }
 
+// SetQueueDepthChecker sets the queue depth checker (called after queue is initialized).
+func (s *Service) SetQueueDepthChecker(dc QueueDepthChecker, maxDepth int64) {
+	s.depthChecker = dc
+	s.maxQueueDepth = maxDepth
+}
+
 // CreateJob validates input, stores the job, and enqueues it for processing.
 // Idempotent: if an active job already exists for the same user + artist, returns it.
 func (s *Service) CreateJob(req JobRequest) (*Job, error) {
@@ -87,6 +101,14 @@ func (s *Service) CreateJob(req JobRequest) (*Job, error) {
 	existing, _ := s.jobRepo.FindActive(context.Background(), req.UserID, req.ArtistMBID)
 	if existing != nil {
 		return existing, nil // return existing active job
+	}
+
+	// Queue depth check: reject if system is at capacity
+	if s.depthChecker != nil {
+		depth, err := s.depthChecker.Len(context.Background())
+		if err == nil && depth >= s.maxQueueDepth {
+			return nil, ErrSystemBusy
+		}
 	}
 
 	now := time.Now()

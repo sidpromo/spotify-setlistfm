@@ -161,3 +161,57 @@ func TestService_CreateJob_Idempotent(t *testing.T) {
 		t.Error("different artist should create a new job")
 	}
 }
+
+// mockDepthChecker simulates queue depth
+type mockDepthChecker struct {
+	depth int64
+}
+
+func (m *mockDepthChecker) Len(_ context.Context) (int64, error) {
+	return m.depth, nil
+}
+
+func TestService_CreateJob_QueueFull(t *testing.T) {
+	ss := &mockSetlistService{result: &setlist.SetlistResult{
+		Artist: "Band", Setlists: []setlist.Setlist{{Songs: []setlist.Song{{Name: "S1"}, {Name: "S2"}, {Name: "S3"}, {Name: "S4"}, {Name: "S5"}}, EventDate: time.Now()}},
+	}}
+	ps := &mockPredictionService{result: &prediction.PredictedSetlist{
+		Songs: []prediction.PredictedSong{{Name: "S1"}}, BasedOnCount: 1,
+	}}
+	sp := &mockSpotifyService{result: &spotify.PlaylistResult{
+		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "n", TracksAdded: 1, TracksTotal: 1,
+	}}
+	svc := NewService(ss, ps, sp, NewInMemoryJobStore(), nil)
+
+	// Set queue depth checker that reports queue is full
+	svc.SetQueueDepthChecker(&mockDepthChecker{depth: 200}, 100)
+
+	_, err := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-1"})
+	if err != ErrSystemBusy {
+		t.Fatalf("expected ErrSystemBusy, got %v", err)
+	}
+}
+
+func TestService_CreateJob_QueueNotFull(t *testing.T) {
+	ss := &mockSetlistService{result: &setlist.SetlistResult{
+		Artist: "Band", Setlists: []setlist.Setlist{{Songs: []setlist.Song{{Name: "S1"}, {Name: "S2"}, {Name: "S3"}, {Name: "S4"}, {Name: "S5"}}, EventDate: time.Now()}},
+	}}
+	ps := &mockPredictionService{result: &prediction.PredictedSetlist{
+		Songs: []prediction.PredictedSong{{Name: "S1"}}, BasedOnCount: 1,
+	}}
+	sp := &mockSpotifyService{result: &spotify.PlaylistResult{
+		PlaylistID: "pl1", PlaylistURL: "http://x", Name: "n", TracksAdded: 1, TracksTotal: 1,
+	}}
+	svc := NewService(ss, ps, sp, NewInMemoryJobStore(), nil)
+
+	// Queue has room
+	svc.SetQueueDepthChecker(&mockDepthChecker{depth: 5}, 100)
+
+	job, err := svc.CreateJob(JobRequest{ArtistMBID: "abc", ArtistName: "Band", UserID: "user-1"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if job == nil {
+		t.Fatal("expected job, got nil")
+	}
+}

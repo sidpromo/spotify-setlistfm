@@ -45,6 +45,8 @@ func (h *Handler) CreatePlaylist(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case errors.Is(err, ErrMissingArtist):
 			writeErr(w, http.StatusBadRequest, err.Error())
+		case errors.Is(err, ErrSystemBusy):
+			writeErr(w, http.StatusServiceUnavailable, err.Error())
 		default:
 			writeErr(w, http.StatusInternalServerError, "failed to create job")
 		}
