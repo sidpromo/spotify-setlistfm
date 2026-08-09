@@ -21,6 +21,7 @@ type AuthConfig struct {
 	ClientID     string
 	ClientSecret string
 	RedirectURI  string
+	FrontendURL  string
 }
 
 // AuthHandler handles Spotify OAuth2 endpoints.
@@ -112,13 +113,19 @@ func (h *AuthHandler) Callback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(map[string]string{ // #nosec G104
-		"accessToken":  accessToken,
-		"refreshToken": refreshToken,
-		"userId":       user.ID,
-		"displayName":  user.DisplayName,
-	})
+	// Step 6: Redirect to frontend with tokens
+	frontendURL := h.cfg.FrontendURL
+	if frontendURL == "" {
+		frontendURL = "http://localhost:5173"
+	}
+	redirectURL := fmt.Sprintf("%s/callback?accessToken=%s&refreshToken=%s&userId=%s&displayName=%s",
+		frontendURL,
+		url.QueryEscape(accessToken),
+		url.QueryEscape(refreshToken),
+		url.QueryEscape(user.ID),
+		url.QueryEscape(user.DisplayName),
+	)
+	http.Redirect(w, r, redirectURL, http.StatusTemporaryRedirect)
 }
 
 func (h *AuthHandler) Status(w http.ResponseWriter, r *http.Request) {

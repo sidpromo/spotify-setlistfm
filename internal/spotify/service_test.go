@@ -15,10 +15,10 @@ func TestService_CreatePlaylist_Success(t *testing.T) {
 			w.Write([]byte(`{"id":"user1","display_name":"Test"}`))
 		case r.URL.Path == "/v1/search":
 			w.Write([]byte(`{"tracks":{"items":[{"id":"t1","name":"Song","uri":"spotify:track:t1","artists":[{"name":"A"}]}]}}`))
-		case r.URL.Path == "/v1/users/user1/playlists":
+		case r.URL.Path == "/v1/me/playlists":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"id":"pl1","external_urls":{"spotify":"https://open.spotify.com/playlist/pl1"}}`))
-		case r.URL.Path == "/v1/playlists/pl1/tracks":
+		case r.URL.Path == "/v1/playlists/pl1/items":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{}`))
 		}
@@ -107,10 +107,10 @@ func TestService_CreatePlaylist_PartialMatch(t *testing.T) {
 			} else {
 				w.Write([]byte(`{"tracks":{"items":[{"id":"t1","name":"Found","uri":"spotify:track:t1","artists":[{"name":"A"}]}]}}`))
 			}
-		case r.URL.Path == "/v1/users/user1/playlists":
+		case r.URL.Path == "/v1/me/playlists":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{"id":"pl1","external_urls":{"spotify":"https://example.com/pl1"}}`))
-		case r.URL.Path == "/v1/playlists/pl1/tracks":
+		case r.URL.Path == "/v1/playlists/pl1/items":
 			w.WriteHeader(http.StatusCreated)
 			w.Write([]byte(`{}`))
 		}

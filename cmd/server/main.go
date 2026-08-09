@@ -135,6 +135,7 @@ func main() {
 		ClientID:     cfg.SpotifyClientID,
 		ClientSecret: cfg.SpotifyClientSecret,
 		RedirectURI:  cfg.SpotifyRedirectURI,
+		FrontendURL:  cfg.FrontendURL,
 	}, tokenStore, userRepo, jwtSvc, spotifyClient, httpClient)
 
 	// Orchestration module (uses cached setlist service)

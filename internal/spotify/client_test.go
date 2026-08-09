@@ -81,7 +81,7 @@ func TestClient_CreatePlaylist_Success(t *testing.T) {
 		if r.Method != http.MethodPost {
 			t.Errorf("expected POST, got %s", r.Method)
 		}
-		if r.URL.Path != "/v1/users/user1/playlists" {
+		if r.URL.Path != "/v1/me/playlists" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusCreated)
@@ -104,7 +104,7 @@ func TestClient_CreatePlaylist_Success(t *testing.T) {
 
 func TestClient_AddTracks_Success(t *testing.T) {
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v1/playlists/pl1/tracks" {
+		if r.URL.Path != "/v1/playlists/pl1/items" {
 			t.Errorf("unexpected path: %s", r.URL.Path)
 		}
 		w.WriteHeader(http.StatusCreated)

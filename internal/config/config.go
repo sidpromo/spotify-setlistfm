@@ -21,6 +21,7 @@ type Config struct {
 	SpotifyClientID          string
 	SpotifyClientSecret      string
 	SpotifyRedirectURI       string
+	FrontendURL              string
 }
 
 func Load() *Config {
@@ -43,6 +44,7 @@ func Load() *Config {
 		SpotifyClientID:         os.Getenv("SPOTIFY_CLIENT_ID"),
 		SpotifyClientSecret:     os.Getenv("SPOTIFY_CLIENT_SECRET"),
 		SpotifyRedirectURI:      os.Getenv("SPOTIFY_REDIRECT_URI"),
+		FrontendURL:             getEnv("FRONTEND_URL", "http://localhost:5173"),
 	}
 }
 
