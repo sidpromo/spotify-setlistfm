@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log/slog"
 	"net/http"
 	"net/url"
 	"strings"
@@ -89,7 +91,7 @@ func (c *Client) GetCurrentUser(ctx context.Context, accessToken string) (*Spoti
 
 // CreatePlaylist creates a new playlist for the user.
 func (c *Client) CreatePlaylist(ctx context.Context, accessToken, userID, name, description string) (string, string, error) {
-	u := fmt.Sprintf("%s/v1/users/%s/playlists", c.baseURL, url.PathEscape(userID))
+	u := fmt.Sprintf("%s/v1/me/playlists", c.baseURL)
 	body := fmt.Sprintf(`{"name":%q,"description":%q,"public":false}`, name, description)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(body))
@@ -118,9 +120,11 @@ func (c *Client) CreatePlaylist(ctx context.Context, accessToken, userID, name, 
 
 // AddTracks adds tracks to a playlist.
 func (c *Client) AddTracks(ctx context.Context, accessToken, playlistID string, uris []string) error {
-	u := fmt.Sprintf("%s/v1/playlists/%s/tracks", c.baseURL, url.PathEscape(playlistID))
+	u := fmt.Sprintf("%s/v1/playlists/%s/items", c.baseURL, url.PathEscape(playlistID))
 	urisJSON, _ := json.Marshal(uris)
 	body := fmt.Sprintf(`{"uris":%s}`, urisJSON)
+
+	slog.Debug("adding tracks to playlist", "playlistID", playlistID, "trackCount", len(uris), "url", u)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, u, strings.NewReader(body))
 	if err != nil {
@@ -147,6 +151,8 @@ func (c *Client) checkStatus(resp *http.Response) error {
 	case resp.StatusCode == http.StatusUnauthorized:
 		return ErrTokenExpired
 	default:
+		body, _ := io.ReadAll(resp.Body)
+		slog.Error("spotify API error", "status", resp.StatusCode, "body", string(body), "url", resp.Request.URL.String())
 		return ErrProviderDown
 	}
 }
