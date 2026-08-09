@@ -9,11 +9,11 @@ import (
 // Service handles Spotify playlist creation.
 type Service struct {
 	client     *Client
-	tokenStore *TokenStore
+	tokenStore TokenStorer
 }
 
 // NewService creates a new Spotify service.
-func NewService(client *Client, tokenStore *TokenStore) *Service {
+func NewService(client *Client, tokenStore TokenStorer) *Service {
 	return &Service{client: client, tokenStore: tokenStore}
 }
 

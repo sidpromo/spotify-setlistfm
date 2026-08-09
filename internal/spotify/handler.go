@@ -26,7 +26,7 @@ type AuthConfig struct {
 // AuthHandler handles Spotify OAuth2 endpoints.
 type AuthHandler struct {
 	cfg        AuthConfig
-	tokenStore *TokenStore
+	tokenStore TokenStorer
 	userRepo   database.UserRepository
 	jwtSvc     *auth.JWTService
 	client     *Client
@@ -34,7 +34,7 @@ type AuthHandler struct {
 }
 
 // NewAuthHandler creates a new auth handler.
-func NewAuthHandler(cfg AuthConfig, tokenStore *TokenStore, userRepo database.UserRepository, jwtSvc *auth.JWTService, client *Client, httpClient *http.Client) *AuthHandler {
+func NewAuthHandler(cfg AuthConfig, tokenStore TokenStorer, userRepo database.UserRepository, jwtSvc *auth.JWTService, client *Client, httpClient *http.Client) *AuthHandler {
 	return &AuthHandler{
 		cfg:        cfg,
 		tokenStore: tokenStore,

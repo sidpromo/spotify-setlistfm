@@ -17,7 +17,14 @@ func (t *Token) IsExpired() bool {
 	return time.Now().After(t.ExpiresAt)
 }
 
-// TokenStore is an in-memory store for Spotify tokens.
+// TokenStorer is the interface for storing/retrieving Spotify tokens.
+type TokenStorer interface {
+	Save(userID string, token *Token) error
+	Get(userID string) (*Token, error)
+	Delete(userID string) error
+}
+
+// TokenStore is an in-memory implementation of TokenStorer.
 type TokenStore struct {
 	mu     sync.RWMutex
 	tokens map[string]*Token

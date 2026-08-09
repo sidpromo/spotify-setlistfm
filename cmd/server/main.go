@@ -121,7 +121,14 @@ func main() {
 	predictionSvc := prediction.NewService(prediction.DefaultConfig())
 
 	// Spotify module
-	tokenStore := spotify.NewTokenStore()
+	var tokenStore spotify.TokenStorer
+	if db != nil {
+		tokenStore = spotify.NewPersistentTokenStore(db)
+		slog.Info("using persistent token store (PostgreSQL)")
+	} else {
+		tokenStore = spotify.NewTokenStore()
+		slog.Warn("using in-memory token store (tokens lost on restart)")
+	}
 	spotifyClient := spotify.NewClient("https://api.spotify.com", httpClient)
 	spotifySvc := spotify.NewService(spotifyClient, tokenStore)
 	authHandler := spotify.NewAuthHandler(spotify.AuthConfig{
