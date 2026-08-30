@@ -2,6 +2,7 @@ package artist
 
 import (
 	"context"
+	"sort"
 	"sync"
 	"time"
 )
@@ -39,17 +40,24 @@ func (s *Service) Search(ctx context.Context, query string, page int) (*ArtistSe
 	}
 
 	// Enrich and score top 5 candidates on page 1
+	// Pre-sort by name match so exact matches get enriched first
+	presorted := make([]Artist, len(result.Artists))
+	copy(presorted, result.Artists)
+	sort.Slice(presorted, func(i, j int) bool {
+		return scoreNameMatch(query, presorted[i].Name) > scoreNameMatch(query, presorted[j].Name)
+	})
+
 	limit := 5
-	if len(result.Artists) < limit {
-		limit = len(result.Artists)
+	if len(presorted) < limit {
+		limit = len(presorted)
 	}
-	candidates := s.enrich(ctx, result.Artists[:limit])
+	candidates := s.enrich(ctx, presorted[:limit])
 	now := time.Now()
 	ranked := rankCandidates(query, candidates, now)
 
 	// Append any remaining (non-enriched) artists after the ranked ones
-	if len(result.Artists) > limit {
-		ranked = append(ranked, result.Artists[limit:]...)
+	if len(presorted) > limit {
+		ranked = append(ranked, presorted[limit:]...)
 	}
 	result.Artists = ranked
 	return result, nil
